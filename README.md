@@ -1,12 +1,13 @@
 # Microsoft GraphHarbor
 
-Microsoft GraphHarbor is an early-stage framework for building endpoint-free
-agent messaging bridges across Microsoft Teams, Microsoft Graph, and private
-agent runtimes.
+Microsoft GraphHarbor is an early-stage framework that lets Hermes, OpenClaw,
+and other agent runtimes interact with Microsoft Teams and Microsoft 365 through
+Microsoft Graph without exposing an external bot endpoint.
 
 The goal is simple: keep Teams lightweight for humans while giving agent systems
 a versioned, inspectable communication surface that does not require a public
-Bot Framework webhook.
+Bot Framework webhook, ngrok tunnel, Microsoft Dev Tunnel, or other inbound
+public ingress.
 
 GraphHarbor starts with Microsoft Teams chat and Microsoft Graph, but the larger
 direction is a reusable pattern for agent communication surfaces that can run
@@ -31,10 +32,11 @@ Graph as the durable technical substrate. Agents then reconcile the chat surface
 through explicit permissions, Graph reads, delegated sends, message identifiers,
 state files, and redaction-safe proof logs.
 
-The deeper need is agent communication without fragile ingress. Dev tunnels,
-public webhooks, and browser-use fallbacks are useful during exploration, but
-durable agent messaging needs authoritative APIs, repeatable authorization,
-auditable state, and narrow permission boundaries. Graph makes that possible.
+The deeper need is agent communication without fragile ingress. Ngrok tunnels,
+Microsoft Dev Tunnels, public webhooks, and browser-use fallbacks are useful
+during exploration, but durable agent messaging needs authoritative APIs,
+repeatable authorization, auditable state, and narrow permission boundaries.
+Graph makes that possible.
 
 GraphHarbor is intentionally API-first. It is not a desktop automation layer,
 and it is not a browser-use agent that clicks through Teams. Browser and
