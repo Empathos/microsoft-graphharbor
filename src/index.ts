@@ -13,7 +13,7 @@ async function main(): Promise<void> {
   const proof = await sendChatMessage({
     accessToken: token.accessToken,
     chatId: config.chatId,
-    content: "Alice Teams Graph Bridge scaffold is wired.",
+    content: "GraphHarbor scaffold is wired.",
   });
 
   console.log(
@@ -33,4 +33,3 @@ main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
 });
-

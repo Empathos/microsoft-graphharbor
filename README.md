@@ -1,81 +1,101 @@
 # Microsoft GraphHarbor
 
-Endpoint-free agent bridge for Microsoft Teams over Microsoft Graph.
+Microsoft GraphHarbor is an endpoint-free bridge pattern for Microsoft Teams agent messaging over Microsoft Graph.
 
-This project captures the proof completed on 2026-06-08: Alice posted into a Teams one-on-one bot chat through Microsoft Graph with no public `/api/messages` bot endpoint involved.
+The goal is simple: keep Teams as the human chat surface while routing agent read/send work through Microsoft Graph, without exposing a public Bot Framework `/api/messages` endpoint for the durable path.
 
-Verified proof message:
+## Why it exists
 
-> Replying from Alice through Microsoft Graph. No public bot endpoint involved.
+Conventional Teams bots require an externally reachable HTTPS endpoint so Bot Framework can deliver activity payloads. That is the right architecture for many public bots, but it is a poor default for local or private agent runtimes that should stay behind outbound-only network boundaries.
 
-## Why This Exists
+GraphHarbor treats Microsoft Graph as the public API boundary. The agent runtime polls or receives authorized Graph state, routes eligible messages into an agent adapter, and sends replies through Graph.
 
-The normal Teams bot path requires a public HTTPS endpoint so Bot Framework can deliver activity payloads to `/api/messages`. That is useful for conventional bots, but it creates an inbound surface. For Alice/OpenClaw, the preferred shape is:
-
-1. Teams remains the human chat UI.
-2. Alice reads relevant chat state through Microsoft Graph.
-3. Alice replies through Microsoft Graph.
-4. No public bot webhook or dev tunnel is required for the durable path.
-
-## Current Proof State
-
-Tenant/app facts from the working proof:
-
-- Tenant ID: `f37cc18c-218a-4d7e-ae6d-e8e7e376e50e`
-- Teams app/bot app ID: `2e61f715-19c0-48b3-9fd1-c835c3fc151f`
-- Graph bridge app ID: `354a638e-982f-4c98-bfee-df6066a945ad`
-- Target chat ID: `19:f225fc6e-b30f-4ad7-9728-812ecbde60b6_2e61f715-19c0-48b3-9fd1-c835c3fc151f@unq.gbl.spaces`
-- Local token file: `/home/alice/.openclaw/credentials/teams-graph-bridge-token.json`
-- Token scopes observed locally: `ChatMessage.Send User.Read profile openid email`
-- Successful send status: `201 Created`
-- Successful Teams message ID: `1780947260890`
-- Successful created time: `2026-06-08T19:34:20.89Z`
-
-Do not commit the token file or any Microsoft client secrets.
-
-## Architecture
-
-The bridge is split into two lanes:
-
-- **Read lane:** Prefer Teams Resource-Specific Consent (RSC) or installed-app scoped Graph permissions, so Alice can read only chats where the Teams app is installed.
-- **Send lane:** Use delegated Microsoft Graph auth with `ChatMessage.Send`, because normal chat posting is performed on behalf of a signed-in user.
-
-Microsoft currently documents `ChatMessage.Send` as a delegated permission that lets an app send one-on-one or group chat messages on behalf of the signed-in user. Microsoft also documents Teams RSC as a way to grant app access to a specific resource instance instead of the whole tenant.
-
-## Repository Contents
-
-- `docs/process.md` records the careful proof procedure and decision log.
-- `docs/setup.md` describes how to recreate the Entra app and device-code login.
-- `docs/security.md` records guardrails and non-goals.
-- `docs/roadmap.md` turns the proof into a GitHub-ready implementation plan.
-- `docs/reproducibility.md` tracks which parts are already reproducible, scriptable, or still manual.
-- `scripts/` will hold executable automation.
-- `prompts/` holds the paired agent/operator prompt for each scriptable operation.
-- `src/` contains a minimal TypeScript scaffold for token loading, Graph calls, polling, and replies.
-
-## Script/Prompt Pairing
-
-Every operational script should have a matching prompt file with the same base name:
+## Core idea
 
 ```text
-scripts/device-code-login.ts
-prompts/device-code-login.prompt.md
+Teams chat UI
+      |
+      v
+Microsoft Graph
+      |
+      v
+GraphHarbor bridge
+      |
+      v
+Local or private agent runtime
 ```
 
-The prompt explains the operator intent, required inputs, safety boundaries, expected output, verification checks, and rollback behavior. The script performs the deterministic work. Both are first-class project artifacts.
+The bridge separates two permission lanes:
 
-## Local Development
+- Read lane: prefer Teams Resource-Specific Consent or where-installed access so the app reads only approved chats.
+- Send lane: use delegated Microsoft Graph authorization for normal chat posting on behalf of an approved signed-in user.
+
+## What GraphHarbor manages
+
+- Microsoft Graph configuration for Teams chat read/send workflows.
+- Device-code delegated login for endpoint-free message sending.
+- Token loading and future refresh handling.
+- Chat polling, message deduplication, and reply posting.
+- Script/prompt pairs for repeatable agent-operated setup and audits.
+- Public-safe documentation for separating reusable code from private deployment details.
+
+## Design principles
+
+- No long-lived public bot endpoint for the durable path.
+- Least-privilege read access, scoped to installed or explicitly approved Teams resources.
+- Delegated send access for normal Teams chat messages.
+- Prompt-native operations: each operational script gets a paired prompt file.
+- Redaction-safe logs by default.
+- Public upstream, private operational downstream.
+
+## Repository layout
+
+```text
+.
+├── README.md
+├── docs/
+│   ├── process.md
+│   ├── publication-model.md
+│   ├── reproducibility.md
+│   ├── roadmap.md
+│   ├── security.md
+│   └── setup.md
+├── prompts/
+├── scripts/
+├── src/
+├── .env.example
+├── package.json
+└── tsconfig.json
+```
+
+## Current status
+
+GraphHarbor is an early public scaffold. The architecture and operator prompts are documented, and the TypeScript scaffold can compile.
+
+Run the public-safe checks:
 
 ```bash
 npm install
 npm run check
+python3 path/to/audit_public_repo.py .
 ```
 
-The scaffold is intentionally not wired to production OpenClaw yet. It is the starting point for a GitHub project, not the final bridge daemon.
+The read lane still needs a finished Resource-Specific Consent reconciliation flow. Token refresh is also scaffolded but not implemented.
+
+## Public/private model
+
+Use this repository as the generic upstream. Keep environment-specific setup, live IDs, proof records, private logs, and credential-store references in a private downstream repository or private branch.
+
+```text
+public microsoft-graphharbor      generic framework, docs, scripts, prompts
+private downstream deployment     tenant values, app IDs, chat IDs, local state
+```
+
+This keeps the public framework reusable while preserving operational privacy.
 
 ## References
 
 - Microsoft Graph send chatMessage: https://learn.microsoft.com/en-us/graph/api/chatmessage-post
 - Microsoft Graph permissions reference: https://learn.microsoft.com/en-us/graph/permissions-reference
 - Teams Resource-Specific Consent: https://learn.microsoft.com/en-us/microsoftteams/platform/graph-api/rsc/resource-specific-consent
-- Teams bots/agents RSC message access: https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/conversations/channel-messages-for-bots-and-agents
+- Teams bots and agents message access: https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/conversations/channel-messages-for-bots-and-agents

@@ -1,36 +1,34 @@
 # Security Notes
 
-## Security Goal
+## Security goal
 
-Avoid exposing Alice/OpenClaw through a public inbound Teams bot endpoint.
+Avoid exposing a private agent runtime through a public inbound Teams bot endpoint. GraphHarbor uses Microsoft Graph as the already-public API boundary and keeps the agent runtime behind outbound-only calls.
 
-The bridge should use Microsoft Graph as the already-public, Microsoft-controlled API boundary and keep Alice's local runtime behind outbound-only calls.
-
-## Credential Rules
+## Credential rules
 
 - Never commit refresh tokens.
 - Never commit Microsoft client secrets.
 - Never print tokens in logs.
-- Store token material under a local credentials directory or secret manager.
-- Keep state files separate from credential files.
-- Redact Graph error payloads before sharing if they contain tenant or user details beyond ordinary IDs.
+- Store token material outside the repository.
+- Keep state files separate from token material.
+- Redact Graph error payloads before sharing if they contain tenant, user, app, or chat details.
 
-## Permission Rules
+## Permission rules
 
 Use the least permission that matches the lane:
 
 - Sending normal Teams chat messages: delegated `ChatMessage.Send`.
 - Reading chat messages: prefer RSC or where-installed app permissions.
-- Avoid broad `Chat.Read.All` / `ChatMessage.Read.All` for production.
+- Avoid broad `Chat.Read.All` or `ChatMessage.Read.All` for production.
 
 Temporary broad grants are acceptable only for bounded proof work when:
 
 1. The purpose is explicit.
-2. The exact grant is recorded.
+2. The exact grant is recorded privately.
 3. The grant is removed immediately after the proof.
 4. Removal is verified.
 
-## Endpoint Rules
+## Endpoint rules
 
 This project is specifically for the no-public-endpoint path.
 
@@ -38,10 +36,10 @@ Non-goals:
 
 - Long-lived dev tunnel.
 - Public `/api/messages` exposure.
-- Broad Teams message ingestion across the tenant.
-- Acting as Mitchell's voice outside the explicit bridge context.
+- Broad Teams message ingestion across a tenant.
+- Unreviewed posting outside explicitly configured bridge contexts.
 
-## Operational Guardrails
+## Operational guardrails
 
 The bridge loop must:
 
@@ -52,4 +50,3 @@ The bridge loop must:
 - Fail closed if token refresh fails.
 - Back off on Graph throttling.
 - Keep a manual kill switch.
-

@@ -1,119 +1,65 @@
-# Process Record: Microsoft Graph Teams Chat Proof
+# Process Guide: Microsoft Graph Teams Chat Bridge
 
-Date: 2026-06-08
+This document describes the generalized GraphHarbor process for building an endpoint-free Teams agent bridge. It intentionally omits tenant-specific IDs, real chat IDs, proof transcripts, local paths, and credential-store details.
 
-Outcome: Alice successfully replied into a Microsoft Teams chat through Microsoft Graph without exposing a public Bot Framework endpoint.
+## Initial problem
 
-## Initial Problem
-
-The existing Teams bot route depended on Bot Framework delivering inbound activities to an endpoint like:
+The conventional Teams bot route depends on Bot Framework delivering inbound activities to an endpoint like:
 
 ```text
 /api/messages
 ```
 
-When running locally, that requires an externally reachable HTTPS ingress such as a dev tunnel. The concern was not whether a tunnel could work; it could. The concern was whether Alice could use Teams as a chat UI without permanently exposing an inbound endpoint.
-
-The target durable design became:
+When the agent runtime is local or private, that usually requires an externally reachable HTTPS ingress such as a dev tunnel or hosted webhook. GraphHarbor uses a different durable shape:
 
 ```text
-Teams UI <-> Microsoft Graph <-> Alice/OpenClaw
+Teams UI <-> Microsoft Graph <-> GraphHarbor <-> private agent runtime
 ```
 
-instead of:
+## Discovery phase
 
-```text
-Teams UI -> Bot Framework -> public /api/messages endpoint -> Alice/OpenClaw
-```
+A useful proof should establish four facts:
 
-## Discovery Phase
+- The Teams app or chat relationship can be discovered through Microsoft Graph or Teams tooling.
+- Chat message reading is possible only with an explicitly approved read lane.
+- Normal chat message sending works through delegated Microsoft Graph auth.
+- No public `/api/messages` endpoint or long-lived dev tunnel is needed for the Graph-first path.
 
-We first confirmed that the existing Teams/Bot Framework path was alive but not ideal:
+## Read path
 
-- OpenClaw had an `msteams` channel configured.
-- The local `/api/messages` listener existed.
-- A public-ish Tailscale/Burrow endpoint returned `401 Unauthorized`, which proved the endpoint was reachable.
-- Delivery still depended on Teams/Bot Framework sending activities to that endpoint.
+Use the narrowest viable read permission. The preferred design is Teams Resource-Specific Consent or where-installed access, so the bridge reads only chats where the app is installed or specifically approved.
 
-We then investigated Graph as the alternate control plane.
-
-Important distinction found:
-
-- Graph could discover the installed Teams app/chat relationship.
-- Graph could not read chat message bodies with the current delegated token.
-- App-only broad read permissions worked temporarily, but were too broad for the durable design.
-
-## Read Path Findings
-
-The Teams app/bot app ID was:
-
-```text
-2e61f715-19c0-48b3-9fd1-c835c3fc151f
-```
-
-Graph could resolve the bot chat object for the installed Teams app. The target chat ID was:
-
-```text
-19:f225fc6e-b30f-4ad7-9728-812ecbde60b6_2e61f715-19c0-48b3-9fd1-c835c3fc151f@unq.gbl.spaces
-```
-
-Attempts to read messages through:
+Useful probe:
 
 ```http
 GET /v1.0/chats/{chat-id}/messages
-GET /beta/chats/{chat-id}/messages
 ```
 
-returned permission failures until broader Graph permission was temporarily added.
-
-Temporary broad grants were used only to prove the path and were then removed:
-
-- Bot app: `Chat.Read.All`
-- Operator app: `TeamsAppInstallation.ReadWriteAndConsentForChat.All`
-
-With the temporary grant, Graph read the latest relevant chat content:
+Public documentation and examples should use placeholders:
 
 ```text
-Alice is awesome.
+YOUR_TEAMS_APP_ID
+YOUR_CHAT_ID
 ```
 
-Sender: Mitchell Rogers
+Avoid broad tenant-wide chat read in production unless a bounded, documented operational need is approved.
 
-Timestamp: `2026-06-08T17:43:32Z`
+## Resource-Specific Consent
 
-After the proof, the broad grants were removed. The desired durable read path remains RSC/app-scoped access where installed.
+Teams app manifests and installed app records can drift during development. After changing RSC declarations, reinstall or reconsent the app in the target resource before treating the permission as live.
 
-## RSC Findings
+The production checklist should verify:
 
-The Teams app manifest/catalog was updated toward RSC-style chat message access.
+- Required RSC permission is declared.
+- The app is installed in the target chat or team.
+- The installed app permission grant is effective.
+- A live read probe succeeds without broad tenant-wide read grants.
 
-The app was granted:
+## Send path
 
-```text
-ChatMessage.Read.Chat
-```
+Normal Teams chat posting through Microsoft Graph uses delegated authorization.
 
-as an application RSC permission through Teams tooling.
-
-The CLI reported:
-
-```text
-needsReinstall: true
-```
-
-That matters. The app catalog or installed copy can be stale after manifest/RSC changes. The Teams app must be reinstalled or reconsented in the target chat before newly declared RSC permissions are effective.
-
-Important final read-lane state:
-
-- The broad read grants were removed.
-- The intended durable read lane is narrow RSC, not tenant-wide message read.
-- Reinstall/reconsent remains part of the production checklist.
-
-## Send Path Findings
-
-Normal Teams chat posting through Microsoft Graph is not the same permission model as app-only reading.
-
-Graph send endpoint:
+Endpoint:
 
 ```http
 POST /v1.0/chats/{chat-id}/messages
@@ -125,134 +71,66 @@ Body:
 {
   "body": {
     "contentType": "text",
-    "content": "Replying from Alice through Microsoft Graph. No public bot endpoint involved."
+    "content": "GraphHarbor proof message."
   }
 }
 ```
 
-The Teams CLI refresh token was not enough. Requesting Graph delegated scopes from the Microsoft-owned Teams CLI client failed with a Microsoft preauthorization constraint. Tenant admin consent cannot make Microsoft's Teams CLI app request arbitrary scopes it is not preauthorized for.
+Use an application you control for delegated Graph scopes. Do not depend on a Microsoft-owned CLI client being preauthorized for arbitrary scopes.
 
-Conclusion:
-
-```text
-Do not try to fix the Teams CLI client. Create our own Entra app for the Graph bridge.
-```
-
-## Bridge App Creation
-
-Created Entra app:
-
-```text
-Alice Teams Graph Bridge
-```
-
-App/client ID:
-
-```text
-354a638e-982f-4c98-bfee-df6066a945ad
-```
-
-Application object ID:
-
-```text
-6f7901d2-9cb5-4732-8fae-8ff1316f85ee
-```
-
-Service principal object ID:
-
-```text
-5951e57b-133e-4c19-bc2f-2d32f5b4a4bd
-```
-
-Configured as a public client suitable for device-code login.
-
-Delegated scopes:
+Minimum send proof scopes:
 
 ```text
 ChatMessage.Send
 User.Read
+offline_access
 ```
 
-Admin consent was created for the tenant.
+## Bridge app creation
 
-## Device Code Login
-
-A fresh device-code flow was started for the bridge app.
-
-Mitchell opened:
+Create an Entra application for the bridge:
 
 ```text
-https://login.microsoft.com/device
+displayName: YOUR_BRIDGE_APP_NAME
+clientId: YOUR_CLIENT_ID
+tenantId: YOUR_TENANT_ID
 ```
 
-and entered the short-lived code shown by the flow.
+Configure it as a public client if using device-code login. Grant the minimum delegated scopes needed for the send lane.
 
-The first code expired before approval. A second code was approved successfully as:
+## Device-code login
 
-```text
-mitchell@empathos.ai
-```
+Device-code login is useful when the bridge needs delegated Graph authorization and an operator can approve the login in a browser.
 
-The resulting refresh token was stored locally at:
+Flow:
 
-```text
-/home/alice/.openclaw/credentials/teams-graph-bridge-token.json
-```
+1. Request a device code from the Microsoft identity platform.
+2. Show the verification URL and short-lived user code.
+3. Poll until the user approves, denies, or the code expires.
+4. Store token material outside the repository.
+5. Print only non-secret metadata.
 
-The stored token file is credential material and must never be committed.
+## Successful proof criteria
 
-Observed non-secret token metadata:
+A proof is complete when:
 
-```text
-tenantId: f37cc18c-218a-4d7e-ae6d-e8e7e376e50e
-clientId: 354a638e-982f-4c98-bfee-df6066a945ad
-scopes: ChatMessage.Send User.Read profile openid email
-```
+- Graph returns `201 Created` for a chat message send.
+- The message appears in the target Teams chat.
+- No public bot webhook or tunnel is involved.
+- Token values are never printed or committed.
+- Any temporary broad grants are removed and verified.
 
-## Successful Graph Reply
+## Production requirements
 
-Using the delegated bridge token, Alice posted:
+Before using GraphHarbor as a durable service:
 
-```text
-Replying from Alice through Microsoft Graph. No public bot endpoint involved.
-```
-
-Graph response:
-
-```text
-HTTP status: 201 Created
-Teams message ID: 1780947260890
-Created: 2026-06-08T19:34:20.89Z
-```
-
-Mitchell confirmed from Teams:
-
-```text
-It Worked!
-```
-
-## Final Decision
-
-The proof validates the durable architecture:
-
-- Teams remains the front-end chat surface.
-- Microsoft Graph is the remote API boundary.
-- Alice/OpenClaw does not need to expose a public inbound bot endpoint for this path.
-- Sending works through delegated Graph auth.
-- Reading should be narrowed through RSC/where-installed permissions instead of broad tenant-wide chat read.
-
-## Production Requirements
-
-Before this becomes a durable service:
-
-1. Reinstall/reconsent the Teams app so RSC grants are effective.
+1. Reconcile and verify the narrow read lane.
 2. Implement token refresh with secure local storage.
-3. Poll the target chat through the narrowest viable read permission.
-4. Deduplicate messages by chat ID and message ID.
-5. Ignore messages authored by the bridge user when appropriate.
-6. Route inbound message text into OpenClaw session handling.
+3. Poll or subscribe to the target chat through approved permissions.
+4. Deduplicate by chat ID and message ID.
+5. Ignore self-authored messages unless configured otherwise.
+6. Route inbound text into the chosen agent adapter.
 7. Send replies through Graph.
-8. Persist bridge state separately from credentials.
+8. Persist bridge state separately from token material.
 9. Add health checks and structured logs.
-10. Keep a clean rollback path for all tenant permission changes.
-
+10. Keep rollback scripts for tenant permission changes.

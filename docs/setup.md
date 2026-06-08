@@ -1,47 +1,41 @@
-# Setup Notes
+# Setup Guide
 
-This is the reproducible shape of the proof. Commands here are intentionally descriptive rather than copy/paste complete because tenant credentials and token material must stay outside the repository.
+This is the reproducible public setup shape for GraphHarbor. Keep tenant-specific values, credential-store locations, and proof transcripts in a private downstream repository or operator notes.
 
-## 1. Create the Graph Bridge App
+## 1. Create the Graph bridge app
 
-Create an Entra application named:
-
-```text
-Alice Teams Graph Bridge
-```
-
-Configure it as a public client so it can use device-code flow.
-
-Known proof app:
+Create an Entra application for the bridge:
 
 ```text
-clientId: 354a638e-982f-4c98-bfee-df6066a945ad
-tenantId: f37cc18c-218a-4d7e-ae6d-e8e7e376e50e
+displayName: YOUR_BRIDGE_APP_NAME
+clientId: YOUR_CLIENT_ID
+tenantId: YOUR_TENANT_ID
 ```
 
-## 2. Add Delegated Graph Permissions
+Configure it as a public client if using device-code flow.
+
+## 2. Add delegated Graph permissions
 
 Minimum send proof scopes:
 
 ```text
 ChatMessage.Send
 User.Read
+offline_access
 ```
 
-Do not use the Microsoft-owned Teams CLI app for this. It is not ours to preauthorize for arbitrary Graph delegated scopes.
+Use an app registration you control. Do not rely on a Microsoft-owned CLI client for arbitrary delegated Graph scopes.
 
-## 3. Grant Admin Consent
+## 3. Grant admin consent
 
-Grant tenant admin consent for the bridge app permissions.
+Grant tenant admin consent for the required bridge app permissions where appropriate. This reduces user-consent friction while keeping tokens delegated to the signed-in user.
 
-This avoids per-user consent friction during the device-code approval flow, while still keeping the token delegated to the signed-in user.
+## 4. Device-code login
 
-## 4. Device Code Login
-
-Start device-code flow against:
+Request a device code from:
 
 ```text
-https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/devicecode
+https://login.microsoftonline.com/YOUR_TENANT_ID/oauth2/v2.0/devicecode
 ```
 
 Use scopes similar to:
@@ -61,7 +55,7 @@ and enters the generated short-lived code.
 Token polling uses:
 
 ```text
-https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token
+https://login.microsoftonline.com/YOUR_TENANT_ID/oauth2/v2.0/token
 ```
 
 with grant type:
@@ -70,30 +64,30 @@ with grant type:
 urn:ietf:params:oauth:grant-type:device_code
 ```
 
-## 5. Store Token Locally
+## 5. Store token material
 
 Store token material outside the repository.
 
-Current local proof path:
+Example environment value:
 
 ```text
-/home/alice/.openclaw/credentials/teams-graph-bridge-token.json
+TOKEN_FILE=path/to/graphharbor-token-store
 ```
 
-The repository `.gitignore` blocks token-shaped files and credential directories. Keep the real token file in the OpenClaw credentials area or another secret store.
+The public repository should never contain refresh tokens, access tokens, client secrets, or environment-specific credential-store paths.
 
-## 6. Send a Teams Chat Message
+## 6. Send a Teams chat message
 
 Endpoint:
 
 ```http
-POST https://graph.microsoft.com/v1.0/chats/{chat-id}/messages
+POST https://graph.microsoft.com/v1.0/chats/YOUR_CHAT_ID/messages
 ```
 
 Headers:
 
 ```http
-Authorization: Bearer {delegated_access_token}
+Authorization: Bearer YOUR_DELEGATED_ACCESS_TOKEN
 Content-Type: application/json
 ```
 
@@ -103,7 +97,7 @@ Body:
 {
   "body": {
     "contentType": "text",
-    "content": "Replying from Alice through Microsoft Graph. No public bot endpoint involved."
+    "content": "GraphHarbor proof message."
   }
 }
 ```
@@ -114,13 +108,12 @@ Expected successful response:
 201 Created
 ```
 
-## 7. Read Messages
+## 7. Read messages
 
 Preferred durable read strategy:
 
 1. Declare Teams RSC permissions in the Teams app.
 2. Reinstall or reconsent the app in the target chat.
-3. Use app/RSC or where-installed Graph permissions to read only where the app is installed.
+3. Use app-scoped or where-installed Graph permissions to read only where the app is installed.
 
 Avoid broad tenant-wide chat read in the durable design unless a specific operational need is approved.
-
