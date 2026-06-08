@@ -1,6 +1,6 @@
-# Alice Teams Graph Bridge
+# Microsoft GraphHarbor
 
-Endpoint-free Microsoft Teams chat bridge using Microsoft Graph.
+Endpoint-free agent bridge for Microsoft Teams over Microsoft Graph.
 
 This project captures the proof completed on 2026-06-08: Alice posted into a Teams one-on-one bot chat through Microsoft Graph with no public `/api/messages` bot endpoint involved.
 
@@ -48,7 +48,21 @@ Microsoft currently documents `ChatMessage.Send` as a delegated permission that 
 - `docs/setup.md` describes how to recreate the Entra app and device-code login.
 - `docs/security.md` records guardrails and non-goals.
 - `docs/roadmap.md` turns the proof into a GitHub-ready implementation plan.
+- `docs/reproducibility.md` tracks which parts are already reproducible, scriptable, or still manual.
+- `scripts/` will hold executable automation.
+- `prompts/` holds the paired agent/operator prompt for each scriptable operation.
 - `src/` contains a minimal TypeScript scaffold for token loading, Graph calls, polling, and replies.
+
+## Script/Prompt Pairing
+
+Every operational script should have a matching prompt file with the same base name:
+
+```text
+scripts/device-code-login.ts
+prompts/device-code-login.prompt.md
+```
+
+The prompt explains the operator intent, required inputs, safety boundaries, expected output, verification checks, and rollback behavior. The script performs the deterministic work. Both are first-class project artifacts.
 
 ## Local Development
 
@@ -65,4 +79,3 @@ The scaffold is intentionally not wired to production OpenClaw yet. It is the st
 - Microsoft Graph permissions reference: https://learn.microsoft.com/en-us/graph/permissions-reference
 - Teams Resource-Specific Consent: https://learn.microsoft.com/en-us/microsoftteams/platform/graph-api/rsc/resource-specific-consent
 - Teams bots/agents RSC message access: https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/conversations/channel-messages-for-bots-and-agents
-

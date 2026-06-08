@@ -1,9 +1,9 @@
 {
-  "name": "alice-teams-graph-bridge",
+  "name": "microsoft-graphharbor",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Endpoint-free Microsoft Teams chat bridge using Microsoft Graph.",
+  "description": "Endpoint-free agent bridge for Microsoft Teams over Microsoft Graph.",
   "scripts": {
     "check": "tsc --noEmit",
     "build": "tsc",
@@ -17,4 +17,3 @@
     "typescript": "^5.8.0"
   }
 }
-

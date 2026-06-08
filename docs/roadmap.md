@@ -20,6 +20,7 @@ Build a simple CLI that can:
 - Send a message to a configured chat.
 - List recent messages from a configured chat once read permissions are finalized.
 - Persist last-seen message ID in a non-secret state file.
+- Pair every operational script with a prompt file in `prompts/`.
 
 ## Phase 2: Bridge Loop
 
@@ -51,3 +52,9 @@ Preferred first implementation is a sidecar. It is easier to reason about and sa
 - Systemd user service or OpenClaw-managed process.
 - Health checks and alerting.
 
+## Phase 5: Prompt-Native Operations
+
+- Treat prompts as maintained operational artifacts, not ad hoc chat text.
+- Add prompt files for setup, auth, audit, send proof, bridge loop, and rollback.
+- Keep prompt files redaction-safe and specific enough for future agents to run without reconstructing context from memory.
+- Add CI checks that fail when a script lacks a paired prompt.
