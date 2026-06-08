@@ -7,7 +7,9 @@
   "scripts": {
     "check": "tsc --noEmit",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "prime": "node dist/index.js prime",
+    "poll-once": "node dist/index.js poll-once"
   },
   "engines": {
     "node": ">=22"

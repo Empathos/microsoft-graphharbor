@@ -3,7 +3,9 @@ export type BridgeConfig = {
   clientId: string;
   chatId: string;
   tokenFile: string;
+  stateFile: string;
   pollIntervalMs: number;
+  replyPrefix: string;
 };
 
 function requiredEnv(name: string): string {
@@ -20,7 +22,8 @@ export function loadConfig(): BridgeConfig {
     clientId: requiredEnv("CLIENT_ID"),
     chatId: requiredEnv("CHAT_ID"),
     tokenFile: requiredEnv("TOKEN_FILE"),
+    stateFile: requiredEnv("STATE_FILE"),
     pollIntervalMs: Number(process.env.POLL_INTERVAL_MS ?? 5000),
+    replyPrefix: process.env.REPLY_PREFIX ?? "GraphHarbor received",
   };
 }
-

@@ -1,32 +1,61 @@
 import { loadConfig } from "./config.js";
-import { sendChatMessage } from "./graphClient.js";
-import { readStoredToken } from "./tokenStore.js";
+import { pollOnceFromState, primeState } from "./bridgeLoop.js";
+import type { GraphChatMessage } from "./graphClient.js";
+import { getAccessToken } from "./tokenStore.js";
+
+function stripHtml(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .trim();
+}
+
+function messageText(message: GraphChatMessage): string {
+  return stripHtml(message.body?.content ?? "");
+}
+
+function replyForMessage(prefix: string, message: GraphChatMessage): string | undefined {
+  const text = messageText(message);
+
+  if (!text || text.startsWith(prefix)) {
+    return undefined;
+  }
+
+  const from = message.from?.user?.displayName ?? message.from?.application?.displayName ?? "unknown";
+  return `${prefix}: message ${message.id} from ${from}`;
+}
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  const token = await readStoredToken(config.tokenFile);
+  const command = process.argv[2] ?? "poll-once";
+  const accessToken = await getAccessToken(config.tokenFile);
 
-  if (!token.accessToken) {
-    throw new Error("Token refresh is not implemented in the scaffold yet");
+  if (command === "prime") {
+    const result = await primeState({
+      accessToken,
+      chatId: config.chatId,
+      stateFile: config.stateFile,
+    });
+    console.log(JSON.stringify({ status: "primed", ...result }, null, 2));
+    return;
   }
 
-  const proof = await sendChatMessage({
-    accessToken: token.accessToken,
-    chatId: config.chatId,
-    content: "GraphHarbor scaffold is wired.",
-  });
+  if (command === "poll-once") {
+    const result = await pollOnceFromState({
+      accessToken,
+      chatId: config.chatId,
+      stateFile: config.stateFile,
+      reply: async (message) => replyForMessage(config.replyPrefix, message),
+    });
+    console.log(JSON.stringify({ status: "polled", ...result }, null, 2));
+    return;
+  }
 
-  console.log(
-    JSON.stringify(
-      {
-        status: "sent",
-        messageId: proof.id,
-        createdDateTime: proof.createdDateTime,
-      },
-      null,
-      2,
-    ),
-  );
+  throw new Error(`Unknown command: ${command}`);
 }
 
 main().catch((error) => {
