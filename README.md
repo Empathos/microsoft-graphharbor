@@ -18,6 +18,12 @@ public internet.
 
 ## Why it exists
 
+**Do not expose Hermes, OpenClaw, PiAgent, bot frameworks, or private agent
+runtimes to untrusted internet endpoints just to make Teams messaging work.
+GraphHarbor uses native Microsoft Graph APIs instead: polling can run on a
+schedule, run frequently, and evolve toward event-triggered communication while
+keeping the private runtime behind outbound-only boundaries.**
+
 Microsoft Teams is good at human communication. Microsoft Graph is good at
 structured identity, permissions, chat APIs, auditability, and tenant-governed
 access. Private agent runtimes need both.
