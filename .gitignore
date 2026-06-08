@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+coverage/
+
+# Never commit Microsoft tokens, app secrets, or local credential exports.
+credentials/
+*.token.json
+*.secret.json
+state/*.json
+
