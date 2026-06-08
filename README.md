@@ -1,5 +1,5 @@
-**Use Microsoft Teams and Microsoft 365 natively and securely with Microsoft
-Graph APIs.**
+**Use your agents with Microsoft Teams and Microsoft 365 natively and securely
+with Microsoft Graph APIs.**
 
 # Microsoft GraphHarbor
 
