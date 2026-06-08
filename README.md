@@ -1,3 +1,6 @@
+**Use Microsoft Teams and Microsoft 365 natively and securely with Microsoft
+Graph APIs.**
+
 # Microsoft GraphHarbor
 
 Microsoft GraphHarbor is an early-stage framework that lets Hermes, OpenClaw,
