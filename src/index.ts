@@ -1,6 +1,7 @@
 import { loadConfig } from "./config.js";
 import { pollOnceFromState, primeState } from "./bridgeLoop.js";
 import type { GraphChatMessage } from "./graphClient.js";
+import { runInterpreterCommand } from "./interpreter.js";
 import { getAccessToken } from "./tokenStore.js";
 
 function stripHtml(value: string): string {
@@ -18,7 +19,12 @@ function messageText(message: GraphChatMessage): string {
   return stripHtml(message.body?.content ?? "");
 }
 
-function replyForMessage(prefix: string, message: GraphChatMessage): string | undefined {
+async function replyForMessage(params: {
+  prefix: string;
+  interpreterCommand?: string;
+  message: GraphChatMessage;
+}): Promise<string | undefined> {
+  const { prefix, interpreterCommand, message } = params;
   const text = messageText(message);
 
   if (!text || text.startsWith(prefix)) {
@@ -26,7 +32,15 @@ function replyForMessage(prefix: string, message: GraphChatMessage): string | un
   }
 
   const from = message.from?.user?.displayName ?? message.from?.application?.displayName ?? "unknown";
-  return `${prefix}: message ${message.id} from ${from}`;
+  if (!interpreterCommand) {
+    console.warn(`No INTERPRETER_COMMAND configured; skipping message ${message.id} from ${from}`);
+    return undefined;
+  }
+
+  return await runInterpreterCommand({
+    command: interpreterCommand,
+    input: { message, text, from },
+  });
 }
 
 async function main(): Promise<void> {
@@ -49,7 +63,12 @@ async function main(): Promise<void> {
       accessToken,
       chatId: config.chatId,
       stateFile: config.stateFile,
-      reply: async (message) => replyForMessage(config.replyPrefix, message),
+      reply: async (message) =>
+        await replyForMessage({
+          prefix: config.replyPrefix,
+          interpreterCommand: config.interpreterCommand,
+          message,
+        }),
     });
     console.log(JSON.stringify({ status: "polled", ...result }, null, 2));
     return;

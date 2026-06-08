@@ -6,6 +6,7 @@ export type BridgeConfig = {
   stateFile: string;
   pollIntervalMs: number;
   replyPrefix: string;
+  interpreterCommand?: string;
 };
 
 function requiredEnv(name: string): string {
@@ -25,5 +26,6 @@ export function loadConfig(): BridgeConfig {
     stateFile: requiredEnv("STATE_FILE"),
     pollIntervalMs: Number(process.env.POLL_INTERVAL_MS ?? 5000),
     replyPrefix: process.env.REPLY_PREFIX ?? "GraphHarbor received",
+    interpreterCommand: process.env.INTERPRETER_COMMAND?.trim() || undefined,
   };
 }
