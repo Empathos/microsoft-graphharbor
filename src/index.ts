@@ -1,5 +1,6 @@
 import { loadConfig } from "./config.js";
 import { pollOnceFromState, primeState } from "./bridgeLoop.js";
+import { listRecentMessages } from "./graphClient.js";
 import type { GraphChatMessage } from "./graphClient.js";
 import { runInterpreterCommand } from "./interpreter.js";
 import { getAccessToken } from "./tokenStore.js";
@@ -55,6 +56,26 @@ async function main(): Promise<void> {
       stateFile: config.stateFile,
     });
     console.log(JSON.stringify({ status: "primed", ...result }, null, 2));
+    return;
+  }
+
+  if (command === "read-smoke") {
+    const messages = await listRecentMessages({
+      accessToken,
+      chatId: config.chatId,
+      top: 5,
+    });
+    console.log(
+      JSON.stringify(
+        {
+          status: "read-smoke-ok",
+          messagesReturned: messages.length,
+          newestCreatedDateTime: messages[0]?.createdDateTime ?? null,
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 

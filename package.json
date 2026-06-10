@@ -9,6 +9,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "prime": "node dist/index.js prime",
+    "read-smoke": "node dist/index.js read-smoke",
+    "cron-poll": "bash scripts/graphharbor-poll-cron.sh",
     "poll-once": "node dist/index.js poll-once"
   },
   "engines": {
