@@ -1,5 +1,13 @@
 # Scripts
 
+Current public scripts:
+
+- `graphharbor-poll-cron.sh` wraps `node dist/index.js poll-once` with a file
+  lock, timeout, and local log output.
+- `openclaw-interpreter.mjs` is an example interpreter boundary. It reads one
+  JSON message context from stdin and writes one reply to stdout. Configure the
+  runtime command with environment variables instead of hard-coding local paths.
+
 Future scripts should live here:
 
 - `create-entra-app` for idempotent bridge app setup.

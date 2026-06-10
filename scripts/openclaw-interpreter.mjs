@@ -14,19 +14,23 @@ function readStdin() {
 }
 
 function runOpenClaw(message) {
+  const openclawBin = process.env.OPENCLAW_BIN ?? "openclaw";
+  const sessionKey = process.env.OPENCLAW_SESSION_KEY ?? "agent:main:graphharbor-teams";
+  const timeoutSeconds = process.env.OPENCLAW_TIMEOUT_SECONDS ?? "180";
+  const thinkingLevel = process.env.OPENCLAW_THINKING ?? "low";
+
   return new Promise((resolve, reject) => {
     const child = spawn(
-      "node",
+      openclawBin,
       [
-        "/home/alice/openclaw/dist/index.js",
         "agent",
         "--json",
         "--session-key",
-        "agent:main:graphharbor-teams",
+        sessionKey,
         "--timeout",
-        "180",
+        timeoutSeconds,
         "--thinking",
-        "low",
+        thinkingLevel,
         "--message",
         message,
       ],
@@ -66,7 +70,7 @@ function parseReply(raw) {
 
 const input = JSON.parse(await readStdin());
 const prompt = [
-  "You are Alice replying through Microsoft Teams via GraphHarbor.",
+  "You are an agent replying through Microsoft Teams via GraphHarbor.",
   "Reply naturally and concisely to the Teams message below.",
   "Do not mention transport internals unless the message asks about them.",
   "",

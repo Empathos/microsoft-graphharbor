@@ -1,8 +1,8 @@
 # PRD and Technical Spec: Teams Agent Bridge
 
 Date: 2026-06-09
-Status: Draft from live proof window
-Owner: Alice
+Status: Public draft
+Owner: Project maintainer
 
 ## BLUF
 
@@ -10,7 +10,7 @@ GraphHarbor should provide a tight, outbound-only Microsoft Teams bridge for
 private agent runtimes. The current proof shows Graph can read a Teams message,
 invoke an interpreter, and send a natural reply back through Graph. The next
 product question is whether the loop can reliably notice fresh Teams messages,
-pass enough context to Alice to interpret them correctly, avoid duplicate or
+pass enough context to an agent to interpret them correctly, avoid duplicate or
 self replies, and fail quietly with inspectable evidence.
 
 ## Problem
@@ -48,14 +48,17 @@ agent turn with the right instruction, context, state, and reply behavior.
 - Rich attachments, cards, reactions, edits, deletes, or channel-thread behavior
   in the first bridge loop.
 
-## Current Evidence
+## Current Public Evidence
 
-- Repository: `projects/alice-teams-graph-bridge`
-- Current head: `600afc1 ops: add graphharbor interpreter adapter`
+- Repository: `microsoft-graphharbor`
+- Current scaffold includes a TypeScript Graph client, token loader, state store,
+  one-pass bridge loop, interpreter command boundary, and cron-safe poll wrapper.
 - TypeScript check: `npm run check` passes.
 - Implemented CLI commands:
   - `node dist/index.js prime`
+  - `node dist/index.js read-smoke`
   - `node dist/index.js poll-once`
+  - `npm run cron-poll`
 - Implemented flow:
   - `loadConfig()`
   - `getAccessToken()`
@@ -64,18 +67,15 @@ agent turn with the right instruction, context, state, and reply behavior.
   - `runInterpreterCommand()`
   - `sendChatMessage()`
   - `writeState()`
-- Live proof from conversation memory:
-  - A direct GraphHarbor test returned exactly `graphharbor-ok`.
-  - A Teams interpreter prompt for "do you see my message?" returned "Yes, I see
-    it."
-- Local process check during this draft found no currently running GraphHarbor
-  poller process. Treat any tight timer as not proven active until rechecked.
+- Public-safe verification should use synthetic fixtures or placeholder tenant
+  values. Private proof logs belong in a private downstream repository.
 
 ## User Stories
 
-1. As Mitchell, I can send Alice a Teams message and receive a concise natural
-   reply without exposing Burrow or OpenClaw through public ingress.
-2. As Alice, I can inspect whether a Teams message was seen, skipped, replied
+1. As a human operator, I can send an agent a Teams message and receive a
+   concise natural reply without exposing the private runtime through public
+   ingress.
+2. As an agent operator, I can inspect whether a Teams message was seen, skipped, replied
    to, or failed without reading secrets or raw tokens.
 3. As an operator, I can stop the loop quickly if it starts duplicating replies
    or interpreting the wrong context.
@@ -156,7 +156,7 @@ default:
   "chatIdHash": "...",
   "inboundMessageId": "...",
   "replyMessageId": "...",
-  "from": "Mitchell Rogers",
+  "from": "Example User",
   "textChars": 21,
   "replyChars": 13,
   "durationMs": 2400
@@ -221,7 +221,7 @@ default:
   session per Teams chat?
 - What exact Graph permission lane should be kept after proof: delegated chat
   read, RSC where-installed read, or app permission with narrower policy?
-- What is the minimum context package Alice needs for high-quality replies:
+- What is the minimum context package an agent needs for high-quality replies:
   current message only, last N Teams messages, or merged Teams plus OpenClaw
   memory context?
 - Where should private proof logs live so they are inspectable but never pushed

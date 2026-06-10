@@ -72,11 +72,48 @@ Example environment value:
 
 ```text
 TOKEN_FILE=path/to/graphharbor-token-store
+STATE_FILE=path/to/graphharbor-state.json
 ```
 
 The public repository should never contain refresh tokens, access tokens, client secrets, or environment-specific credential-store paths.
 
-## 6. Send a Teams chat message
+## 6. Build the scaffold
+
+Install dependencies and compile the TypeScript sources:
+
+```bash
+npm install
+npm run build
+```
+
+The built entry point supports:
+
+```bash
+npm run prime
+npm run read-smoke
+npm run poll-once
+npm run cron-poll
+```
+
+## 7. Prime bridge state
+
+Before enabling an automated poller, prime the state file so historical messages
+are marked as already seen:
+
+```bash
+npm run prime
+```
+
+Expected output:
+
+```json
+{
+  "status": "primed",
+  "messagesPrimed": 5
+}
+```
+
+## 8. Send a Teams chat message
 
 Endpoint:
 
@@ -108,7 +145,7 @@ Expected successful response:
 201 Created
 ```
 
-## 7. Read messages
+## 9. Read messages
 
 Preferred durable read strategy:
 
@@ -117,3 +154,44 @@ Preferred durable read strategy:
 3. Use app-scoped or where-installed Graph permissions to read only where the app is installed.
 
 Avoid broad tenant-wide chat read in the durable design unless a specific operational need is approved.
+
+For a configured bridge with a valid read lane, run:
+
+```bash
+npm run read-smoke
+```
+
+Expected output includes only status metadata, not message bodies:
+
+```json
+{
+  "status": "read-smoke-ok",
+  "messagesReturned": 5,
+  "newestCreatedDateTime": "2026-01-01T00:00:00Z"
+}
+```
+
+## 10. Run one bridge poll
+
+`poll-once` reads recent Graph messages, filters previously seen message IDs,
+passes new message context to the configured interpreter command, posts any
+non-empty interpreter response back through Graph, and updates the state file.
+
+```bash
+npm run poll-once
+```
+
+For scheduled operation, use the wrapper:
+
+```bash
+npm run cron-poll
+```
+
+The wrapper uses a file lock, a timeout, and JSONL-style status events. Configure
+its paths with placeholder-safe environment variables such as:
+
+```text
+GRAPHHARBOR_LOG_DIR=path/to/graphharbor-logs
+GRAPHHARBOR_LOCK_FILE=path/to/graphharbor-poll.lock
+GRAPHHARBOR_POLL_TIMEOUT_SECONDS=45
+```

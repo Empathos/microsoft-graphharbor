@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_dir="/home/alice/.openclaw/workspace/projects/alice-teams-graph-bridge"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo_dir="${GRAPHHARBOR_REPO_DIR:-$(cd -- "$script_dir/.." && pwd)}"
 cd "$repo_dir"
 
 if [[ -f .env.private ]]; then

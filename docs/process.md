@@ -134,3 +134,29 @@ Before using GraphHarbor as a durable service:
 8. Persist bridge state separately from token material.
 9. Add health checks and structured logs.
 10. Keep rollback scripts for tenant permission changes.
+
+## Current bridge loop
+
+The current scaffold includes a single-pass loop rather than a resident daemon.
+That is intentional for the public baseline: one pass is easier to audit,
+schedule, retry, and roll back.
+
+The loop currently:
+
+- Loads configuration from environment variables.
+- Loads or refreshes delegated token material from a token file outside the repo.
+- Reads recent chat messages through Microsoft Graph.
+- Tracks seen message IDs in a separate state file.
+- Ignores empty messages and replies that already start with the configured reply prefix.
+- Sends new message context to an operator-configured interpreter command over stdin.
+- Posts any non-empty interpreter stdout back to the same chat through Graph.
+- Adds the sent reply ID to state when Graph returns one.
+
+The cron wrapper adds:
+
+- A non-blocking file lock to prevent overlapping polls.
+- A bounded timeout for each poll attempt.
+- Start, finish, and skip events in a local log directory.
+
+This keeps the first durable operating mode close to the transport facts:
+poll, deduplicate, interpret, send, persist.

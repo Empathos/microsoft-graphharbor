@@ -130,14 +130,20 @@ agent can reason about the conversation, but the bridge verifies the transport.
 │   ├── create-entra-app.prompt.md
 │   ├── device-code-login.prompt.md
 │   ├── rollback-permissions.prompt.md
-│   └── send-proof-message.prompt.md
+│   ├── send-proof-message.prompt.md
+│   ├── graphharbor-poll-cron.prompt.md
+│   └── openclaw-interpreter.prompt.md
 ├── scripts/
-│   └── README.md
+│   ├── README.md
+│   ├── graphharbor-poll-cron.sh
+│   └── openclaw-interpreter.mjs
 ├── src/
 │   ├── bridgeLoop.ts
 │   ├── config.ts
 │   ├── graphClient.ts
 │   ├── index.ts
+│   ├── interpreter.ts
+│   ├── stateStore.ts
 │   └── tokenStore.ts
 ├── .env.example
 ├── package.json
@@ -148,7 +154,9 @@ agent can reason about the conversation, but the bridge verifies the transport.
 
 GraphHarbor is early, but the public scaffold is no longer only a proof note. It
 has a documented architecture, a public/private publication model, a TypeScript
-transport scaffold, and prompt files for the main operator workflows.
+transport scaffold, a one-pass bridge loop, a refresh-capable token loader,
+state-file deduplication, a generic interpreter adapter, a cron-safe poller
+wrapper, and prompt files for the main operator workflows.
 
 Run the public-safe checks:
 
@@ -158,15 +166,26 @@ npm run check
 python3 path/to/audit_public_repo.py .
 ```
 
-The current scaffold can compile, load configuration, load stored token metadata,
-list recent messages when read permission exists, send chat messages when a
-delegated token is available, and perform one in-memory polling pass with
-deduplication.
+Available public scaffold commands:
 
-The read provider is intentionally unfinished. Real deployments should supply
-their Teams app manifest, Resource-Specific Consent reconciliation, tenant app
-setup, credential storage, runtime adapter, and proof logs in a private
-downstream repository.
+```bash
+npm run build
+npm run prime
+npm run read-smoke
+npm run poll-once
+npm run cron-poll
+```
+
+The current scaffold can compile, load configuration, refresh a stored delegated
+token, list recent messages when read permission exists, prime a state file,
+deduplicate seen message IDs, send chat messages when a delegated token is
+available, invoke an operator-supplied interpreter command, and run a locked
+single poll suitable for systemd timers or cron.
+
+The read lane still depends on tenant-specific consent. Real deployments should
+supply their Teams app manifest, Resource-Specific Consent reconciliation,
+tenant app setup, credential storage, runtime adapter selection, service-manager
+configuration, and proof logs in a private downstream repository.
 
 Live credentials, private tenant IDs, private chat IDs, private app IDs, private
 agent configuration, and environment-specific paths do not belong in this public
