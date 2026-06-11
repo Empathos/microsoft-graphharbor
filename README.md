@@ -174,6 +174,7 @@ npm run prime
 npm run read-smoke
 npm run poll-once
 npm run cron-poll
+npm run send-message -- --dry-run "GraphHarbor public smoke message"
 ```
 
 The current scaffold can compile, load configuration, refresh a stored delegated
@@ -181,6 +182,12 @@ token, list recent messages when read permission exists, prime a state file,
 deduplicate seen message IDs, send chat messages when a delegated token is
 available, invoke an operator-supplied interpreter command, and run a locked
 single poll suitable for systemd timers or cron.
+
+Other projects should treat GraphHarbor as the Microsoft communication adapter,
+not as a place to store their own task semantics. A planning bridge, release
+agent, or local operator can call `send-message` with a prepared payload while
+GraphHarbor owns Microsoft Graph authorization, chat IDs, token refresh, and
+readback proof.
 
 The read lane still depends on tenant-specific consent. Real deployments should
 supply their Teams app manifest, Resource-Specific Consent reconciliation,

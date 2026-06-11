@@ -11,7 +11,8 @@
     "prime": "node dist/index.js prime",
     "read-smoke": "node dist/index.js read-smoke",
     "cron-poll": "bash scripts/graphharbor-poll-cron.sh",
-    "poll-once": "node dist/index.js poll-once"
+    "poll-once": "node dist/index.js poll-once",
+    "send-message": "node dist/index.js send-message"
   },
   "engines": {
     "node": ">=22"
