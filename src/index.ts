@@ -1,9 +1,17 @@
 import { loadConfig } from "./config.js";
 import { pollOnceFromState, primeState } from "./bridgeLoop.js";
-import { listRecentMessages } from "./graphClient.js";
+import { listRecentMessages, sendChatMessage } from "./graphClient.js";
 import type { GraphChatMessage } from "./graphClient.js";
 import { runInterpreterCommand } from "./interpreter.js";
 import { getAccessToken } from "./tokenStore.js";
+
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString("utf8").trim();
+}
 
 function stripHtml(value: string): string {
   return value
@@ -45,8 +53,53 @@ async function replyForMessage(params: {
 }
 
 async function main(): Promise<void> {
-  const config = loadConfig();
   const command = process.argv[2] ?? "poll-once";
+
+  if (command === "send-message") {
+    const rawArgs = process.argv.slice(3);
+    const dryRun = rawArgs.includes("--dry-run");
+    const messageArgs = rawArgs.filter((arg) => arg !== "--dry-run");
+    const content = messageArgs.join(" ").trim() || (await readStdin());
+    if (!content) {
+      throw new Error("send-message requires message text as arguments or stdin");
+    }
+
+    if (dryRun) {
+      console.log(
+        JSON.stringify(
+          {
+            status: "dry-run",
+            messageLength: content.length,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+
+    const config = loadConfig();
+    const accessToken = await getAccessToken(config.tokenFile);
+    const sent = await sendChatMessage({
+      accessToken,
+      chatId: config.chatId,
+      content,
+    });
+    console.log(
+      JSON.stringify(
+        {
+          status: "sent",
+          id: sent.id,
+          createdDateTime: sent.createdDateTime ?? null,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  const config = loadConfig();
   const accessToken = await getAccessToken(config.tokenFile);
 
   if (command === "prime") {
