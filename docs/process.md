@@ -116,6 +116,7 @@ A proof is complete when:
 
 - Graph returns `201 Created` for a chat message send.
 - The message appears in the target Teams chat.
+- The bridge records the returned message ID for follow-up verification.
 - No public bot webhook or tunnel is involved.
 - Token values are never printed or committed.
 - Any temporary broad grants are removed and verified.

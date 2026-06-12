@@ -41,6 +41,7 @@ A step is reproducible when:
 5. Failure modes are explicit.
 6. Rollback exists for tenant mutations.
 7. A paired prompt explains how an agent or operator should run it.
+8. The public-safe artifact can be rerun from a clean checkout.
 
 ## Prompt pairing rule
 
