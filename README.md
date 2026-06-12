@@ -118,7 +118,9 @@ agent can reason about the conversation, but the bridge verifies the transport.
 ├── AGENTS.md
 ├── README.md
 ├── docs/
+│   ├── calling-graphharbor.md
 │   ├── process.md
+│   ├── prd-teams-agent-bridge.md
 │   ├── publication-model.md
 │   ├── reproducibility.md
 │   ├── roadmap.md
